@@ -1,0 +1,58 @@
+name: Deploy Client and Server to EC2
+
+on:
+  push:
+    branches:
+      - master  # Triggers deployment on push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout repository code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    # Install dependencies and build the client
+    - name: Build client
+      working-directory: ./client
+      run: |
+        npm install
+        npm run build
+
+    # Install dependencies and build the server
+    - name: Install server dependencies
+      working-directory: ./server
+      run: npm install
+
+    # Deploy to EC2 server via SSH
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.4
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: 22
+        script: |
+          # Navigate to the app directory on EC2
+          cd /home/ec2-user/fullapp
+          # Pull the latest changes from the repository
+          git pull origin main
+
+          # Install server dependencies on EC2
+          cd server
+          npm install
+          pm2 restart all  # Restart Node.js server using PM2 (if you're using it)
+
+          # Navigate to the client directory
+          cd ../client
+
+          # Copy the client build files to the appropriate directory (e.g., /var/www/html for Nginx)
+          sudo cp -r build/* /home/ec2-user/fullapp

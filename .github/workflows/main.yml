@@ -22,7 +22,7 @@ jobs:
 
     # Install dependencies and build the client
     - name: Build client
-      working-directory: ./client
+      working-directory: public/client
       run: |
         npm install
         npm run build
